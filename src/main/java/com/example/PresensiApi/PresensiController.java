@@ -7,6 +7,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/presensi")
@@ -16,7 +17,9 @@ public class PresensiController {
     @Autowired
     private PresensiRepository repository;
 
-    // GET dengan Pagination (Untuk Unlimited Scrolling di Mobile)
+    @Autowired
+    private GeoService geoservice;
+
     @GetMapping("/history/{nim}")
     public Page<Presensi> getHistory(
             @PathVariable String nim,
@@ -27,13 +30,11 @@ public class PresensiController {
         return repository.findByNimMhs(nim, pageable);
     }
 
-    // POST: Simpan Absensi Baru
     @PostMapping
     public Presensi savePresensi(@RequestBody Presensi presensi) {
         return repository.save(presensi);
     }
 
-    // UPDATE: Mengubah status atau data presensi
     @PutMapping("/{id}")
     public ResponseEntity<Presensi> updatePresensi(@PathVariable Long id, @RequestBody Presensi details) {
         return repository.findById(id).map(p -> {
@@ -41,5 +42,15 @@ public class PresensiController {
             p.setJamPresensi(details.getJamPresensi());
             return ResponseEntity.ok(repository.save(p));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/locate")
+    public String checkLocation(@RequestBody Map<String, Object> request) {
+        double lat = Double.parseDouble(request.get("lat").toString());
+        double lng = Double.parseDouble(request.get("lng").toString());
+        
+        boolean inside = geoservice.isInside(lat, lng);
+        
+        return inside ? "IN AREA" : "OUT AREA";
     }
 }
